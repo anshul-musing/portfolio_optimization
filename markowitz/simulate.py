@@ -5,7 +5,7 @@ import numpy as np
 def scenarios(df, tickers, exp_ratio, nscenarios, ndays):
 
     # Create an empty list to store yearly returns 
-    # for each vehicle in each scenario
+    # for each asset in each scenario
     np.random.seed(707)
     returns = {}
     for t in tickers:
@@ -22,27 +22,28 @@ def scenarios(df, tickers, exp_ratio, nscenarios, ndays):
     return rdf
 
 
-def portfolio_return(tickers, rdf, w):
+def portfolio_return(rdf, w):
 
     # Create a portfolio return as a weighted sum of
-    # the returns of the investments in the portfolio
+    # the returns of the assets in the portfolio
     # for a given set of weights
-    rdf = rdf.assign(portfolio_return=0.0)
-    for i, t in enumerate(tickers):
-        rdf['portfolio_return'] += w[i]*rdf[t]
+    pdf = rdf.copy()
+    pdf = pdf.assign(portfolio_return=0.0)
+    for i, t in enumerate(rdf.columns.tolist()):
+        pdf['portfolio_return'] += w[i]*pdf[t]
 
     # number of scenarios with negative returns, average negative
     # return across scenarios, and average portfolio return
-    perc_neg_scenarios = rdf[rdf.portfolio_return < 0].shape[0] / rdf.shape[0]
-    avg_neg_return = rdf[rdf.portfolio_return < 0]['portfolio_return'].sum() / rdf.shape[0] 
-    avg_return = rdf['portfolio_return'].mean()
+    perc_neg_scenarios = pdf[pdf.portfolio_return < 0].shape[0] / pdf.shape[0]
+    avg_neg_return = pdf[pdf.portfolio_return < 0]['portfolio_return'].sum() / pdf.shape[0] 
+    avg_return = pdf['portfolio_return'].mean()
     
-    return rdf, perc_neg_scenarios, avg_neg_return, avg_return
+    return pdf, perc_neg_scenarios, avg_neg_return, avg_return
 
 
-def efficient_frontier(tickers, rdf):
+def efficient_frontier(rdf):
 
-    # Randomly sample weights for the investments in
+    # Randomly sample weights for the assets in
     # the portfolio and create an efficient frontier
     # between average portfolio return and negative
     # portfolio return for given weights
@@ -50,9 +51,9 @@ def efficient_frontier(tickers, rdf):
     avgret = []
     negret = []
     for r in range(1000):
-        w = np.random.random(len(tickers))
+        w = np.random.random(rdf.shape[1])
         w = w/sum(w)
-        _, _, avg_neg, avg_ret = portfolio_return(tickers, rdf, w)
+        _, _, avg_neg, avg_ret = portfolio_return(rdf, w)
         negret.append(-avg_neg)
         avgret.append(avg_ret)
 
