@@ -52,10 +52,16 @@ def scenarios(df, tickers, exp_ratio, nscenarios, ndays):
 
 
 def portfolio_return(tickers, rdf, w):
+
+    # Create a portfolio return as a weighted sum of
+    # the returns of the investments in the portfolio
+    # for a given set of weights
     rdf = rdf.assign(portfolio_return=0.0)
     for i, t in enumerate(tickers):
         rdf['portfolio_return'] += w[i]*rdf[t]
 
+    # number of scenarios with negative returns, average negative
+    # return across scenarios, and average portfolio return
     perc_neg_scenarios = rdf[rdf.portfolio_return < 0].shape[0] / rdf.shape[0]
     avg_neg_return = rdf[rdf.portfolio_return < 0]['portfolio_return'].sum() / rdf.shape[0] 
     avg_return = rdf['portfolio_return'].mean()
@@ -64,6 +70,11 @@ def portfolio_return(tickers, rdf, w):
 
 
 def efficient_frontier(tickers, rdf):
+
+    # Randomly sample weights for the investments in
+    # the portfolio and create an efficient frontier
+    # between average portfolio return and negative
+    # portfolio return for given weights
     np.random.seed(707)
     avgret = []
     negret = []
@@ -74,7 +85,7 @@ def efficient_frontier(tickers, rdf):
         negret.append(-avg_neg)
         avgret.append(avg_ret)
 
-    #plt.scatter(negret, avgret)
+    # plot efficient frontier as
+    # plt.scatter(negret, avgret)
     return negret, avgret
-
 
