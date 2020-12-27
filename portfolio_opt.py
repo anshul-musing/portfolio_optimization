@@ -44,7 +44,7 @@ def scenarios(df, tickers, exp_ratio, nscenarios, ndays):
     for i in range(nscenarios):
         idx = np.random.randint(0, df.shape[0], ndays)
         for t in tickers:
-            returns[t].append(df.iloc[idx][t+'-ret'].prod() - 1 - (exp_ratio[t]*ndays/(360.0*100)))
+            returns[t].append(df.iloc[idx][t+'-ret'].prod() - 1 - (exp_ratio[t]*ndays/(365.0*100)))
 
     rdf = pd.DataFrame(returns)
 
@@ -63,5 +63,18 @@ def portfolio_return(tickers, rdf, w):
     return rdf, perc_neg_scenarios, avg_neg_return, avg_return
 
 
-def portfolio_model():
+def efficient_frontier(tickers, rdf):
+    np.random.seed(707)
+    avgret = []
+    negret = []
+    for r in range(1000):
+        w = np.random.random(len(tickers))
+        w = w/sum(w)
+        _, _, avg_neg, avg_ret = portfolio_return(tickers, rdf, w)
+        negret.append(-avg_neg)
+        avgret.append(avg_ret)
+
+    #plt.scatter(negret, avgret)
+    return negret, avgret
+
 
