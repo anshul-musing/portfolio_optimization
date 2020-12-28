@@ -43,16 +43,18 @@ def opt_model(assets, scenarios, net_return, expense_ratio
 
     # Solve the model
     invest.solve(PULP_CBC_CMD(msg=1))
-    optObj = value(invest.objective)*100.0
-    optSoln = {}
+    opt_obj = value(invest.objective)*100.0
+    opt_w = {}
     for i in assets:
-        optSoln[i] = w[i].varValue    
+        opt_w[i] = w[i].varValue
 
-    return optObj, optSoln
+    opt_risk = sum([z[s].varValue for s in scenarios]) / len(scenarios)
+
+    return opt_obj, opt_w, opt_risk
 
 
 def optimize(rdf, exp_ratio, 
-            max_risk, min_ratio, min_assets):
+            max_risk, min_ratio, min_assets, frontier=False):
 
     # Define problem parameters
     assets = [i for i in range(len(rdf.columns))]
@@ -61,7 +63,15 @@ def optimize(rdf, exp_ratio,
     expense_ratio = list(exp_ratio.values()) if len(exp_ratio) > 0 else []
 
     # Solve the problem
-    return opt_model(assets, scenarios, net_return, expense_ratio, 
-                max_risk, min_ratio, min_assets)
-
-
+    if not frontier:
+        return opt_model(assets, scenarios, net_return, expense_ratio, 
+                            max_risk, min_ratio, min_assets)
+    else:
+        mrisk = max_risk*np.array([0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4])
+        optrets = []
+        for m in mrisk:
+            o, w, r = opt_model(assets, scenarios, net_return, expense_ratio, 
+                            m, min_ratio, min_assets)
+            optrets.append(o)
+        optrets = np.array(optrets)
+        return mrisk, optrets
