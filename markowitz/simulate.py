@@ -29,8 +29,8 @@ def portfolio_return(rdf, w):
     # for a given set of weights
     pdf = rdf.copy()
     pdf = pdf.assign(portfolio_return=0.0)
-    for i, t in enumerate(rdf.columns.tolist()):
-        pdf['portfolio_return'] += w[i]*pdf[t]
+    for t in rdf.columns.tolist():
+        pdf['portfolio_return'] += w[t]*pdf[t]
 
     # number of scenarios with negative returns, average negative
     # return across scenarios, and average portfolio return

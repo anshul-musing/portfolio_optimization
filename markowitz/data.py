@@ -21,6 +21,12 @@ def preprocess(data, tickers):
     df = data[cols].copy().reset_index()
 
     # Rename columns and get daily percent return
+    # We analyzed the daily return and found no
+    # correlation with time.  In other words, the 
+    # daily return appears to be independent of the
+    # timeframe and we don't see any upward or
+    # downward trend with time (which is different
+    # from upward trend in prices over time)
     for t in tickers:
         df = df.rename(columns={'Open '+t:t})
         df[t+'-ret'] = 1 + (df[t].shift(-1) - df[t])/df[t]
