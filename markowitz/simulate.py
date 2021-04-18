@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 
-def scenarios(df, tickers, exp_ratio, nscenarios, ndays):
+def scenarios(df, tickers, ndays, nscenarios=500):
 
     # Create an empty list to store yearly returns 
     # for each asset in each scenario
@@ -14,10 +14,25 @@ def scenarios(df, tickers, exp_ratio, nscenarios, ndays):
 
     # Simulate each scenario
     for i in range(nscenarios):
+
+        # First randomly sample days from the last few years
+        # of data.  We sample ndays worth of data
         idx = np.random.randint(0, df.shape[0], ndays)
+
+        # Now we find the cumulative return for each ticker
+        # on the sampled days.  Note that this methodology
+        # preserves the correlation between the tickers.
+        # Because each ticker's returns are calculated on the
+        # same sampled set of days, we inherently get the 
+        # cumulative correlated returns.  For instance, all
+        # risky assets and conservative assets will show 
+        # similar correlated pattern on a particular day.
+        # Thus, by picking a particular day, we pick the
+        # behavior of related assets on that day
         for t in tickers:
             if t in df.columns:
-                returns[t].append(df.iloc[idx][t+'-ret'].prod() - 1 - (exp_ratio[t]*ndays/(365.0*100)))
+                ret = (df.iloc[idx][t+'-ret'].prod())**(1/float(ndays)) - 1
+                returns[t].append(ret)
 
     rdf = pd.DataFrame(returns)
 

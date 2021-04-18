@@ -3,8 +3,7 @@ import numpy as np
 from pulp import *
 
 
-def opt_model(assets, scenarios, net_return, expense_ratio
-            , max_risk, min_ratio, min_assets):
+def opt_model(assets, scenarios, net_return, max_risk, min_assets):
 
     # Define problem
     invest = LpProblem("Investment allocation problem", LpMaximize)
@@ -12,7 +11,7 @@ def opt_model(assets, scenarios, net_return, expense_ratio
     # Variables
     y = LpVariable.dicts("Choose asset", assets, lowBound=0.0, upBound=1.0, cat=LpInteger)
     w = LpVariable.dicts("Allocation fraction", assets, lowBound=0.0, upBound=1.0, cat=LpContinuous)
-    z = LpVariable.dicts("Risk measure", scenarios, lowBound=0, upBound=None, cat=LpContinuous)
+    z = LpVariable.dicts("Risk measure", scenarios, lowBound=0.0, upBound=None, cat=LpContinuous)
 
     # Objective function
     # maximize return across all assets in all scenarios
@@ -37,11 +36,6 @@ def opt_model(assets, scenarios, net_return, expense_ratio
     # Risk tolerance
     invest += lpSum(z[s] for s in scenarios) / len(scenarios) <= max_risk
 
-    # Limit on expense ratio
-    if len(expense_ratio) > 0:
-        for i in assets:
-            invest += y[i]*expense_ratio[i] <= min_ratio
-
     # Solve the model
     invest.solve(PULP_CBC_CMD(msg=1))
     opt_obj = value(invest.objective)*100.0
@@ -54,14 +48,49 @@ def opt_model(assets, scenarios, net_return, expense_ratio
     return opt_obj, opt_w, opt_risk
 
 
-def optimize(rdf, exp_ratio, max_risk, min_ratio, min_assets):
+def optimize(rdf, max_risk, min_assets):
 
     # Define problem parameters
     assets = [i for i in range(len(rdf.columns))]
     scenarios = rdf.index.tolist()
     net_return = rdf.to_numpy()
-    expense_ratio = list(exp_ratio.values()) if len(exp_ratio) > 0 else []
 
     # Solve the problem
-    return opt_model(assets, scenarios, net_return, expense_ratio, 
-                        max_risk, min_ratio, min_assets)
+    return opt_model(assets, scenarios, net_return, max_risk, min_assets)
+
+
+def perform_opt(rdf, exp_ratio, min_ratio=0.3):
+    min_assets = 1 # minimum assets in the portfolio
+    max_risk = [0.14, 0.12, 0.1, 0.08, 0.06, 0.04, 0.02] # max risk of negative returns
+    res_list = []
+    for m in max_risk:
+        # Get the daily equivalent of the annual max risk
+        mrisk = (1+m)**(1/360.0)-1
+
+        # Filter out high expense ratio assets
+        exp_r_filtered = {k:v for (k,v) in exp_ratio.items() if v <= 0.4 and k in rdf.columns}
+        rdff = rdf[list(exp_r_filtered.keys())].copy()
+
+        # Optimize
+        obj, wopt, orisk = optimize(rdff, mrisk, min_assets)
+        
+        # Save results
+        wopt.update({'return':obj, 'risk': orisk})
+        if obj > 0:
+            res_list.append(wopt)
+
+    resdf = pd.DataFrame(res_list)
+
+    # Attach ticker symbols as column names
+    col_list = {}
+    for i, c in enumerate(rdff.columns):
+        col_list[i] = c
+    resdf = resdf.rename(columns=col_list)
+
+    # Remove the zero columns
+    collist = []
+    for c in resdf.columns:
+        if resdf[c].sum() > 0:
+            collist.append(c)
+
+    return resdf[collist]
