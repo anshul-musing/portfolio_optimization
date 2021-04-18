@@ -9,13 +9,15 @@ def scenarios(df, tickers, exp_ratio, nscenarios, ndays):
     np.random.seed(707)
     returns = {}
     for t in tickers:
-        returns[t] = []
+        if t in df.columns:
+            returns[t] = []
 
     # Simulate each scenario
     for i in range(nscenarios):
         idx = np.random.randint(0, df.shape[0], ndays)
         for t in tickers:
-            returns[t].append(df.iloc[idx][t+'-ret'].prod() - 1 - (exp_ratio[t]*ndays/(365.0*100)))
+            if t in df.columns:
+                returns[t].append(df.iloc[idx][t+'-ret'].prod() - 1 - (exp_ratio[t]*ndays/(365.0*100)))
 
     rdf = pd.DataFrame(returns)
 
